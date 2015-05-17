@@ -3,6 +3,7 @@ package org.apache.cordova.facebook;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Currency;
@@ -13,17 +14,27 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaActivity;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaWebViewEngine;
+import org.apache.cordova.ICordovaCookieManager;
 import org.apache.cordova.PluginResult;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.CordovaInterface;
+import org.crosswalk.engine.XWalkCordovaView;
+import org.crosswalk.engine.XWalkWebViewEngine;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.xwalk.core.XWalkView;
+import org.xwalk.core.internal.XWalkCookieManager;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.CookieManager;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import com.facebook.AppEventsLogger;
 import com.facebook.FacebookDialogException;
@@ -44,7 +55,7 @@ import com.facebook.widget.FacebookDialog;
 import com.facebook.widget.WebDialog;
 import com.facebook.widget.WebDialog.OnCompleteListener;
 
-public class ConnectPlugin extends CordovaPlugin {
+public class ConnectPlugin extends CordovaPlugin implements CordovaWebViewEngine.EngineView {
 
     private static final int INVALID_ERROR_CODE = -2; //-1 is FacebookRequestError.INVALID_ERROR_CODE
     private static final String PUBLISH_PERMISSION_PREFIX = "publish";
@@ -70,6 +81,8 @@ public class ConnectPlugin extends CordovaPlugin {
     private String userID;
     private UiLifecycleHelper uiHelper;
     private boolean trackingPendingCall = false;
+
+    protected XWalkWebViewEngine parentEngine;
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -749,6 +762,36 @@ public class ConnectPlugin extends CordovaPlugin {
                 + "\"userID\": \"" + userID + "\""
                 + "}"
                 + "}";
+//
+            CookieManager nativeCookieManager = CookieManager.getInstance();
+
+            CordovaActivity testActivity = (CordovaActivity) cordova.getActivity();
+            FrameLayout containerView = (FrameLayout) testActivity.findViewById(android.R.id.content);
+            XWalkCordovaView cordovaView = (XWalkCordovaView) containerView.getChildAt(0);
+
+            ICordovaCookieManager cookieManager = (ICordovaCookieManager) cordovaView.getCordovaWebView().getEngine().getCookieManager();
+            cookieManager.setCookiesEnabled(true);
+
+            final String[] arrayUrl = {
+                    "http://static.ak.facebook.com",
+                    "https://s-static.ak.facebook.com",
+                    "https://www.facebook.com",
+                    "http://m.facebook.com",
+                    ".facebook.com"
+            };
+            
+            for(int i=0; i<arrayUrl.length; i++) {
+                String cookie_value = nativeCookieManager.getCookie(arrayUrl[i]);
+                if(cookie_value != null) {
+                    String[] values = cookie_value.split(";");
+                    for(int q=0; q<values.length; q++) {
+                        cookieManager.setCookie(arrayUrl[i], values[q]);
+                    }
+                }
+            }
+
+            cookieManager.flush();
+
         } else {
             response = "{"
                 + "\"status\": \"unknown\""
@@ -821,5 +864,10 @@ public class ConnectPlugin extends CordovaPlugin {
             e.printStackTrace();
         }
         return new JSONObject();
+    }
+
+    @Override
+    public CordovaWebView getCordovaWebView() {
+        return parentEngine == null ? null : parentEngine.getCordovaWebView();
     }
 }
