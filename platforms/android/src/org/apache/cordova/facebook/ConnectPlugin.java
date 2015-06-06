@@ -48,6 +48,7 @@ import com.facebook.Request;
 import com.facebook.Request.GraphUserCallback;
 import com.facebook.Response;
 import com.facebook.Session;
+import com.facebook.SessionLoginBehavior;
 import com.facebook.SessionState;
 import com.facebook.UiLifecycleHelper;
 import com.facebook.model.GraphObject;
@@ -56,7 +57,7 @@ import com.facebook.widget.FacebookDialog;
 import com.facebook.widget.WebDialog;
 import com.facebook.widget.WebDialog.OnCompleteListener;
 
-public class ConnectPlugin extends CordovaPlugin implements CordovaWebViewEngine.EngineView {
+public class ConnectPlugin extends CordovaPlugin {
 
     private static final int INVALID_ERROR_CODE = -2; //-1 is FacebookRequestError.INVALID_ERROR_CODE
     private static final String PUBLISH_PERMISSION_PREFIX = "publish";
@@ -82,8 +83,6 @@ public class ConnectPlugin extends CordovaPlugin implements CordovaWebViewEngine
     private String userID;
     private UiLifecycleHelper uiHelper;
     private boolean trackingPendingCall = false;
-
-    protected XWalkWebViewEngine parentEngine;
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -174,7 +173,7 @@ public class ConnectPlugin extends CordovaPlugin implements CordovaWebViewEngine
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-
+        Log.d(TAG, "cordova execute > " + action);
         if (action.equals("login")) {
             Log.d(TAG, "login FB");
             // Get the permissions
@@ -247,6 +246,8 @@ public class ConnectPlugin extends CordovaPlugin implements CordovaWebViewEngine
                 Session.setActiveSession(session);
                 // - Create the request
                 Session.OpenRequest openRequest = new Session.OpenRequest(cordova.getActivity());
+              
+                openRequest.setLoginBehavior(SessionLoginBehavior.SUPPRESS_SSO); // <-- this is the important line
                 // - Set the permissions
                 openRequest.setPermissions(permissions);
                 // - Set the status change call back
@@ -881,8 +882,4 @@ public class ConnectPlugin extends CordovaPlugin implements CordovaWebViewEngine
         return new JSONObject();
     }
 
-    @Override
-    public CordovaWebView getCordovaWebView() {
-        return parentEngine == null ? null : parentEngine.getCordovaWebView();
-    }
 }
