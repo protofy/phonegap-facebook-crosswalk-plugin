@@ -27,7 +27,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.xwalk.core.XWalkView;
-import org.xwalk.core.internal.XWalkCookieManager;
+import org.xwalk.core.XWalkCookieManager;
 
 import android.content.Intent;
 import android.os.Bundle;
